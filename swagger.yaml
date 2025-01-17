@@ -1,0 +1,414 @@
+openapi: 3.0.0
+info:
+  title: Obituary API
+  description: API for handling obituaries and related data.
+  version: 1.0.0
+components:
+  securitySchemes:
+    OAuth2:
+      type: oauth2
+      flows:
+        clientCredentials:
+          tokenUrl: /oauth/token
+          scopes:
+            read: "Read access to obituary data"
+            write: "Write access to obituary data"
+paths:
+  /oauth/token:
+    post:
+      summary: Retrieve OAuth 2.0 token
+      description: Obtain an OAuth 2.0 access token using client credentials.  
+                   Use the token to authenticate requests to the API.
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                client_id:
+                  type: string
+                  description: "Your client ID"
+                  example: "example-client-id"
+                client_secret:
+                  type: string
+                  description: "Your client secret"
+                  example: "example-client-secret"
+                grant_type:
+                  type: string
+                  description: "Must be 'client_credentials'"
+                  example: "client_credentials"
+      responses:
+        '200':
+          description: Access token retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                    description: "The OAuth 2.0 access token"
+                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  token_type:
+                    type: string
+                    description: "Type of the token, e.g., 'Bearer'"
+                    example: "Bearer"
+                  expires_in:
+                    type: integer
+                    description: "Lifetime of the token in seconds"
+                    example: 3600
+        '400':
+          description: Invalid request
+        '401':
+          description: Invalid client credentials
+  /publications:
+    get:
+      summary: Retrieve a list of publications
+      description: Fetch a list of publications available for publishing obituaries.
+      security:
+        - OAuth2:
+            - read
+      responses:
+        '200':
+          description: A list of publications.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      example: "12345"
+                    domain:
+                      type: string
+                      example: "avis1.no"
+                    name:
+                      type: string
+                      example: "Avis 1"
+                    mediaRelations:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                            example: "67890"
+                          domain:
+                            type: string
+                            example: "avis2.no"
+                          name:
+                            type: string
+                            example: "Avis 2"
+  /obituaries:
+    post:
+      summary: Add a new obituary
+      description: Adds a new obituary to the system. Certain fields are managed internally and should not be included in the request payload.
+      security:
+        - OAuth2:
+            - write
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ad_type:
+                  type: string
+                  description: "Type of the ad, e.g., DeathNotice"
+                  example: "DeathNotice"
+                agency_name:
+                  type: string
+                  description: "Name of the agency handling the ad"
+                  example: "Gravferdsbyrået"
+                agency_org_no:
+                  type: integer
+                  description: "Organization number of the agency"
+                  example: 123456789
+                ceremony_date:
+                  type: string
+                  format: date-time
+                  description: "Date of the ceremony"
+                  example: "2025-01-06T10:30:00Z"
+                ceremony_place:
+                  type: string
+                  description: "Location of the ceremony"
+                  example: "Kirken"
+                city_id:
+                  type: integer
+                  description: "Identifier for the city"
+                  example: 863
+                content:
+                  type: array
+                  description: "Structured content of the obituary"
+                  items:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                        description: "Type of content element"
+                        enum: ["twin_text", "text", "image", "poem", "family", "author"]
+                        example: "text"
+                      component:
+                        type: string
+                        description: "UI component or content category"
+                        enum: [
+                          "begravning", "dato", "agentnavn", "rubrikk", "takk", "vers",
+                          "forklaring", "familie", "Image", "bilde", "ort", "pikenavn",
+                          "sorgende", "kommentar", "Tittel", "navn"
+                        ]
+                        example: "kommentar"
+                      content:
+                        type: array
+                        description: "The actual content of the element"
+                        items:
+                          type: object
+                          properties:
+                            format:
+                              type: string
+                              description: "Formatting metadata for nested content"
+                              example: "1"
+                            content:
+                              type: string
+                              description: "Content text"
+                              example: "John Doe"
+                      order:
+                        type: integer
+                        description: "Order of the element"
+                        example: 1
+                      lineOrder:
+                        type: integer
+                        description: "Order of lines within the element"
+                        example: 1
+                      name:
+                        type: string
+                        description: "Name identifier for the content element"
+                        example: "familj1"
+                  example: [
+                    {
+                      "type": "text",
+                      "component": "kommentar",
+                      "content": ["En kjær ektemann", "pappa, sønn"],
+                      "order": 1
+                    },
+                    {
+                      "type": "family",
+                      "component": "familie",
+                      "content": [
+                        { "format": "1", "content": "Carina" },
+                        { "format": "1", "content": "Hanne" }
+                      ],
+                      "name": "familj1"
+                    }
+                  ]
+                donation_url:
+                  type: string
+                  description: "URL for donations"
+                  example: "https://donation.example.com"
+                flower_shop_url:
+                  type: string
+                  description: "URL for ordering flowers"
+                  example: "https://flowers.example.com"
+                fullname:
+                  type: string
+                  description: "Full name of the deceased"
+                  example: "John Doe"
+                media_id:
+                  type: integer
+                  description: "Identifier for the media outlet"
+                  example: 785
+                memorial_page_url:
+                  type: string
+                  description: "URL to the memorial page"
+                  example: "https://memorial.example.com"
+                publication_date:
+                  type: string
+                  format: date
+                  description: "Date the obituary is published"
+                  example: "2025-01-07"
+                web_publication_date:
+                  type: string
+                  format: date-time
+                  description: "Date the obituary is published on the web"
+                  example: "2025-01-06T09:00:00Z"
+              required:
+                - ad_type
+                - fullname
+                - publication_date
+                - content
+      responses:
+        '201':
+          description: Obituary successfully created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    description: "The unique identifier of the created obituary"
+                    example: "643f1a2e9b1e3c456dfab123"
+        '400':
+          description: Invalid input
+        '500':
+          description: Server error
+    get:
+      summary: Retrieve a list of obituaries
+      description: Returns a list of obituaries, optionally filtered by status, date, or other fields.
+      security:
+        - OAuth2:
+            - read
+      parameters:
+        - name: publication_date
+          in: query
+          description: Filter by publication date (ISO 8601 format)
+          schema:
+            type: string
+            format: date
+            example: "2025-01-07"
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            example: 1
+        - name: limit
+          in: query
+          description: Number of results per page
+          schema:
+            type: integer
+            example: 10
+      responses:
+        '200':
+          description: A paginated list of obituaries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  page:
+                    type: integer
+                    example: 1
+                  total_pages:
+                    type: integer
+                    example: 5
+                  total_results:
+                    type: integer
+                    example: 42
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          example: "1"
+                        fullname:
+                          type: string
+                          example: "John Doe"
+                        publication_date:
+                          type: string
+                          format: date
+                          example: "2025-01-07"
+                        status:
+                          type: string
+                          example: "active"
+  /obituaries/{id}:
+    patch:
+      summary: Update an existing obituary
+      description: Updates specific fields of an obituary.
+      security:
+        - OAuth2:
+            - read
+            - write
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The unique identifier of the obituary
+          schema:
+            type: string
+            example: "1"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                fullname:
+                  type: string
+                  description: "The updated full name of the deceased"
+                  example: "Jane Smith"
+                publication_date:
+                  type: string
+                  format: date
+                  description: "The updated publication date"
+                  example: "2025-02-01"
+      responses:
+        '200':
+          description: Obituary updated successfully
+        '404':
+          description: Obituary not found
+        '400':
+          description: Invalid input
+  /obituaries/{id}/cancel:
+    patch:
+      summary: Cancel an obituary
+      description: Marks an obituary as cancelled. Requires authentication.
+      security:
+        - OAuth2:
+            - write
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The identifier set by the provider for the obituary to cancel
+          schema:
+            type: string
+            example: "12345"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  description: Reason for cancelling the obituary
+                  example: "Duplicate entry"
+      responses:
+        '200':
+          description: Obituary successfully cancelled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    description: The unique identifier of the cancelled obituary
+                    example: "643f1a2e9b1e3c456dfab123"
+                  status:
+                    type: string
+                    description: The updated status of the obituary
+                    example: "cancelled"
+                  cancelled_date:
+                    type: string
+                    format: date-time
+                    description: The timestamp when the obituary was cancelled
+                    example: "2025-01-08T10:30:00Z"
+                  reason:
+                    type: string
+                    description: The reason provided for cancelling the obituary
+                    example: "Duplicate entry"
+        '404':
+          description: Obituary not found
+        '400':
+          description: Invalid input
+        '500':
+          description: Server error
