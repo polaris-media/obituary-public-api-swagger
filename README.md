@@ -14,7 +14,7 @@ This is a sample project for an Obituary Public API. The API allows users to man
 1. Clone the repository:
 
 ```sh
-git clone https://github.com/yourusername/obituary-public-api.git
+git clone https://github.com/polaris-media/obituary-public-api-swagger.git
 cd obituary-public-api
 ```
 
